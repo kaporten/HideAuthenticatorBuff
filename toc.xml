@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Addon Author="porten" APIVersion="8" Name="HideAuthenticatorBuff" Description="Simple addon for hiding the permanently-on Authenticator XP buff icon." Version="1.0.0">
+    <Script Name="HideAuthenticatorBuff.lua"/>
+</Addon>
