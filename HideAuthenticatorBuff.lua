@@ -22,36 +22,16 @@ function HideAuthenticatorBuff:OnLoad()
 	-- When changing instance (housing, dungeon, etc), restart the initial timer
 	Apollo.RegisterEventHandler("ChangeWorld", "OnChangeWorld", self) 
 	
-	--[[
-		This requires explanation :-/
-		
-		I can find the individual buff-window on the GUI, but the only detail on 
-		which buff each window represents is the GetBuffTooltip(). So, I compare 
-		for known tooltips across different locales, in order to identify the
-		buff-window to hide.
-		
-		And, for some reason, the good folks at Carbine decided to stick a char(194) 
-		which LOOKS like a space (except space is 32) in between the 2 and % signs. 
-		
-		I've had no luck actually reproducing this char(194) myself, so I ended
-		up just cutting the tooltip-string at the index on which it occurs.		
-	]]
-	
 	-- Default: en	
 	self.buffTooltip = "XP, Renown, and Prestige gain is increased by 2%."
-	self.endIdx = string.len(self.buffTooltip)
 
 	-- Check locale for de and fr. 
-	local strCancel = Apollo.GetString(1)	
+	local strCancel = Apollo.GetString(1)
 	if strCancel == "Abbrechen" then 
-		--													    | idx 37 contains char(194)
-		self.buffTooltip = "Gewinn an EP, Ruhm und Prestige um 2 % erhöht."
-		self.endIdx = 36
+		self.buffTooltip = "Gewinn an EP, Ruhm und Prestige um 2\194\160% erhöht."
 	end
 	if strCancel == "Annuler" then
-		--																			   | idx 61 contains char(194)		
-		self.buffTooltip = "Les gains d'EXP, de renommée et de prestige augmentent de 2 %."
-		self.endIdx = 60
+		self.buffTooltip = "Les gains d'EXP, de renommée et de prestige augmentent de 2\194\160%."
 	end
 end
 
@@ -95,7 +75,7 @@ function HideAuthenticatorBuff:HideBuff()
 	-- Buffs found, loop over them all
 	for _,buff in ipairs(buffs) do
 		local tooltip = buff:GetBuffTooltip()
-		if string.sub(tooltip, 1, self.endIdx) == string.sub(self.buffTooltip, 1, self.endIdx) then
+		if tooltip == self.buffTooltip then
 			-- If tooltip is a partial match (and still visible), print that it is being hidden			
 			if buff:IsShown() then
 				-- ChatSystemLib.PostOnChannel(ChatSystemLib.ChatChannel_System, "Hiding Authenticator buff")
