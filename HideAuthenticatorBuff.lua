@@ -19,6 +19,9 @@ function HideAuthenticatorBuff:OnLoad()
 	-- Permanent timer scanning buffs every minute. Just in case it re-appears for some reason.
 	self.permanentTimer = ApolloTimer.Create(60.000, true, "OnPermanentTimer", self)
 
+	-- When changing instance (housing, dungeon, etc), restart the initial timer
+	Apollo.RegisterEventHandler("ChangeWorld", "OnChangeWorld", self) 
+	
 	--[[
 		This requires explanation :-/
 		
@@ -52,11 +55,19 @@ function HideAuthenticatorBuff:OnLoad()
 	end
 end
 
+-- When changing instance, restart the initial-timer
+function HideAuthenticatorBuff:OnChangeWorld()
+	self:StopInitialTimer()
+	self.initialTimer = ApolloTimer.Create(1.000, true, "HideBuff", self)
+end
+
+-- When the permanent timer kicks in, stop any still-running initial timer (and scan buffs)
 function HideAuthenticatorBuff:OnPermanentTimer()
 	self:StopInitialTimer()
 	self:HideBuff()
 end
 
+-- Used to consistently stop/nil the initial timer
 function HideAuthenticatorBuff:StopInitialTimer()
 	if self.initialTimer ~= nil then		
 		self.initialTimer:Stop()
