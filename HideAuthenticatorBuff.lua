@@ -2,19 +2,22 @@ require "Window"
  
 local HideAuthenticatorBuff = {} 
 function HideAuthenticatorBuff:new(o)
-    o = o or {}
-    setmetatable(o, self)
-    self.__index = self 
-    return o
+	o = o or {}
+	setmetatable(o, self)
+	self.__index = self 
+	return o
 end
 
 function HideAuthenticatorBuff:Init()
-    Apollo.RegisterAddon(self, false, "", "TargetFrame")
+	Apollo.RegisterAddon(self, false, "", "TargetFrame")
 end
 
 function HideAuthenticatorBuff:OnLoad()
-	-- Initial one-time 10sec timer after loading. 
-	self.timer = ApolloTimer.Create(10.000, false, "HideBuff", self)
+	-- Initial timer scanning every second. Will be aborted when buff is hidden, or when permanent-timer kicks in
+	self.initialTimer = ApolloTimer.Create(1.000, true, "HideBuff", self)
+	
+	-- Permanent timer scanning buffs every minute. Just in case it re-appears for some reason.
+	self.permanentTimer = ApolloTimer.Create(60.000, true, "OnPermanentTimer", self)
 
 	--[[
 		This requires explanation :-/
@@ -38,21 +41,30 @@ function HideAuthenticatorBuff:OnLoad()
 	-- Check locale for de and fr. 
 	local strCancel = Apollo.GetString(1)	
 	if strCancel == "Abbrechen" then 
-		--                                                      | idx 37 contains char(194)
+		--													    | idx 37 contains char(194)
 		self.buffTooltip = "Gewinn an EP, Ruhm und Prestige um 2 % erhöht."
 		self.endIdx = 36
 	end
 	if strCancel == "Annuler" then
-		--                                                                              | idx 61 contains char(194)		
+		--																			   | idx 61 contains char(194)		
 		self.buffTooltip = "Les gains d'EXP, de renommée et de prestige augmentent de 2 %."
 		self.endIdx = 60
 	end
 end
 
+function HideAuthenticatorBuff:OnPermanentTimer()
+	self:StopInitialTimer()
+	self:HideBuff()
+end
+
+function HideAuthenticatorBuff:StopInitialTimer()
+	if self.initialTimer ~= nil then		
+		self.initialTimer:Stop()
+		self.initialTimer = nil
+	end
+end
+
 function HideAuthenticatorBuff:HideBuff()
-	-- Repeatable 60 sec timer to re-check for buff if it gets shown again (or missed the 1st time around)
-	self.timer = ApolloTimer.Create(60.000, true, "HideBuff", self)
-	
 	-- Safely dig into the GUI elements
 	local addonTargetFrame = Apollo.GetAddon("TargetFrame")
 	if addonTargetFrame == nil then return end
@@ -70,16 +82,14 @@ function HideAuthenticatorBuff:HideBuff()
 	if buffs == nil then return end
 	
 	-- Buffs found, loop over them all
-	self.buffs = {}
 	for _,buff in ipairs(buffs) do
-		self.buffs[_] = buff
 		local tooltip = buff:GetBuffTooltip()
-		
 		if string.sub(tooltip, 1, self.endIdx) == string.sub(self.buffTooltip, 1, self.endIdx) then
 			-- If tooltip is a partial match (and still visible), print that it is being hidden			
 			if buff:IsShown() then
-				ChatSystemLib.PostOnChannel(ChatSystemLib.ChatChannel_System, "Hiding Authenticator buff")
+				-- ChatSystemLib.PostOnChannel(ChatSystemLib.ChatChannel_System, "Hiding Authenticator buff")
 				buff:Show(false, true)
+				self:StopInitialTimer()
 			end
 			break
 		end
